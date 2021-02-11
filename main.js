@@ -1,11 +1,12 @@
+const properties = require('./properties.json')
 const Discord = require('discord.js');
 const mysql = require('mysql');
 
 const con = mysql.createConnection({
-	host: "192.168.0.247",
-	user: "anime",
-	password: "animebotsecret",
-	database: "animebot"
+	host: properties.dbhost,
+	user: properties.dbuser,
+	password: properties.dbpassword,
+	database: properties.database
 });
 
 con.connect(function(err) {
@@ -91,4 +92,4 @@ function parseArgs(args){
 	return newArgs;
 }
 
-client.login('Njc5MzgxMjkyOTk5MTE0NzYz.XkwhIg.EqjwYAiL1TIIuWlVTW39oGTMvRQ');
+client.login(properties.discordToken);
