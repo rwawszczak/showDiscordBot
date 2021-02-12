@@ -13,6 +13,11 @@ con.connect(function(err) {
 	if (err) throw err;
 	console.log("Connected to database!");
 });
+con.on('error', err => {
+	console.log('MYSQL error occured:');
+	console.log(err.code); // 'ER_BAD_DB_ERROR'
+	console.log(err);
+});
 
 const client = new Discord.Client();
 const prefix = '!';
