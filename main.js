@@ -2,22 +2,29 @@ const properties = require('./properties.json')
 const Discord = require('discord.js');
 const mysql = require('mysql');
 
-const con = mysql.createConnection({
-	host: properties.dbhost,
-	user: properties.dbuser,
-	password: properties.dbpassword,
-	database: properties.database
-});
+var con = null;
 
-con.connect(function(err) {
-	if (err) throw err;
-	console.log("Connected to database!");
-});
-con.on('error', err => {
-	console.log('MYSQL error occured:');
-	console.log(err.code); // 'ER_BAD_DB_ERROR'
-	console.log(err);
-});
+const getConnection = function() {
+	var connection = mysql.createConnection({
+		host: properties.dbhost,
+		user: properties.dbuser,
+		password: properties.dbpassword,
+		database: properties.database
+	});
+	connection.on('error', err => {
+		console.log('MYSQL error occured:');
+		console.log(err.code); // 'ER_BAD_DB_ERROR'
+		console.log(err);
+		getConnection();
+	});
+	connection.connect(function(err) {
+		if (err) throw err;
+		console.log("Connected to database!");
+	});
+	con = connection;
+}
+
+getConnection();
 
 const client = new Discord.Client();
 const prefix = '!';
