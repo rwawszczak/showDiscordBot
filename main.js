@@ -3,7 +3,7 @@ const Discord = require('discord.js');
 const mysql = require('mysql');
 
 var con = null;
-// TEST
+
 const getConnection = function() {
 	var connection = mysql.createConnection({
 		host: properties.dbhost,
