@@ -13,7 +13,7 @@ const getConnection = function() {
 	});
 	connection.on('error', err => {
 		console.log('MYSQL error occured:');
-		console.log(err.code); // 'ER_BAD_DB_ERROR'
+		console.log(err.code);
 		console.log(err);
 		getConnection();
 	});
