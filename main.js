@@ -65,7 +65,7 @@ client.on('message', message => {
 		commandDefinition.execute(message, parseArgs(args), con)
 	}	
 	if(command === 'commands'){
-		var msg = 'List of available commands:';
+		var msg = 'Available commands:';
 		for(cmd of client.commands){
 			msg += `\n**${cmd[0]}** - *${cmd[1].description}*`
 		}
