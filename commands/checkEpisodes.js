@@ -5,7 +5,8 @@ module.exports = {
 	execute(message, args, con){
         const addEpisode = require('./addEpisode.js');
         const removeEpisode = require('./removeEpisode.js');
-        const showAll = !!args[1] && args[1] === 'all';
+        const unseen = !!args[1] && args[1] === 'unseen';
+        const showAll = (!!args[1] && args[1] === 'all') || unseen;
         const refresh = !!args[1] && args[1] === 'refresh';
 
         const handleAsync = async function(message, text, episode){
@@ -81,7 +82,9 @@ module.exports = {
             if(showAll && number > 1){
                 var finalLink = getFinalLink(previousLink, genericUrl, number);
                 var msgText = `**${number-1}**: <${finalLink}>`;
-                handleAsync(message,msgText,savedEpisodes.get(number-1));
+                if(!unseen || !savedEpisodes.get(number-1).watched) {
+                    handleAsync(message,msgText,savedEpisodes.get(number-1));
+                }
             } 
 
             if(!showAll &&
@@ -103,7 +106,11 @@ module.exports = {
             getScript(episodeUrl).then(result => {
                 if(result.includes(include)){
                     if(showAll){
-                        msgHandle.edit(`List of availiable **${name}** episodes:`);
+                        if(unseen){
+                            msgHandle.edit(`List of unseen **${name}** episodes:`);
+                        } else {
+                            msgHandle.edit(`List of availiable **${name}** episodes:`);
+                        }
                     } else if(number % 10 === 0){
                         msgHandle.edit(`Checked **${name}** episodes 1 to ${number}...`);
                     }
