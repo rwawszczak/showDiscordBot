@@ -189,7 +189,7 @@ module.exports = {
         }
 
 		if(args.length > 0){
-            var showDataSql = `SELECT show_name, episode_url, episode_include, episode_pattern, id FROM shows WHERE show_name LIKE '%${args[0]}%' AND user='${message.author.username}#${message.author.discriminator}'`;
+            var showDataSql = `SELECT show_name, episode_url, episode_include, episode_pattern, id FROM shows WHERE show_name LIKE '%${args[0]}%' AND user='${message.author.username}#${message.author.discriminator}' AND (archived = 0 OR archived IS NULL)`;
             var errorMsg = 'Something went wrong while trying fetch show data from the database.';
             var noResultsMsg = `Currently you have no shows that include ${args[0]} in their name. Use \`addShow\` command to add one.`;
             
