@@ -89,9 +89,11 @@ module.exports = {
 
             if(!showAll &&
             	savedEpisodes.get(number-1) &&
-            	savedEpisodes.get(number-2) &&
             	!savedEpisodes.get(number-1).watched &&
-            	savedEpisodes.get(number-2).watched){
+	            	(number=1 ||
+	            	(savedEpisodes.get(number-2) &&
+	            	savedEpisodes.get(number-2).watched))
+            	){
 	                var currentLink = getFinalLink(previousLink, genericUrl, number);
 	                var msgText = `First not watched **${name}** episode is episode number **${number-1}**:\n<${currentLink}>`;
 	    			handleAsync(message,msgText,savedEpisodes.get(number-1));
