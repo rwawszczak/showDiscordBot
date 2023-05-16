@@ -70,8 +70,9 @@ client.on('message', message => {
 	if(command === 'replay'){
 		if(!!lastCommand){
 			lastCommand();
+		} else {
+			message.channel.send("No previous command to be replayed.");
 		}
-		message.channel.send("No previous command to be replayed.");
 	}
 	if(command === 'commands'){
 		var msg = 'Available commands:';
