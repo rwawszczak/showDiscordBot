@@ -44,6 +44,8 @@ client.once('ready', () => {
 	console.log('Animebot is online!');
 });
 
+var lastCommand;
+
 client.on('message', message => {
 	if(message.author.bot || (message.channel.type !== 'dm' && !message.content.startsWith(prefix)) ){
 		return;
@@ -62,8 +64,15 @@ client.on('message', message => {
 		commandDefinition = client.shortCommands.get(command);
 	}
 	if(!!commandDefinition){
-		commandDefinition.execute(message, parseArgs(args), con)
+		lastCommand = () => commandDefinition.execute(message, parseArgs(args), con);
+		lastCommand();
 	}	
+	if(command === 'replay'){
+		if(!!lastCommand){
+			lastCommand();
+		}
+		message.channel.send("No previous command to be replayed.");
+	}
 	if(command === 'commands'){
 		var msg = 'Available commands:';
 		for(cmd of client.commands){
