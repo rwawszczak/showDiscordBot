@@ -159,7 +159,7 @@ module.exports = {
 				    message.channel.send(errorMsg);
 				    throw err;
 			    }
-			    if(noResultsMsg && result.length == 0){
+			    if(noResultsMsg && result.length === 0){
 				    message.channel.send(noResultsMsg);
 			    } else {
                     handleResult(result);
@@ -188,11 +188,16 @@ module.exports = {
             });
         }
 
-		if(args.length > 0){
-            var showDataSql = `SELECT show_name, episode_url, episode_include, episode_pattern, id FROM shows WHERE show_name LIKE '%${args[0]}%' AND user='${message.author.username}#${message.author.discriminator}' AND (archived = 0 OR archived IS NULL)`;
+        const handleShow = (show, username, discriminator) => {
+            var showDataSql = `SELECT show_name, episode_url, episode_include, episode_pattern, id FROM shows WHERE show_name LIKE '%${show}%' AND user='${username}#${discriminator}' AND (archived = 0 OR archived IS NULL)`;
             var errorMsg = 'Something went wrong while trying fetch show data from the database.';
-            var noResultsMsg = `Currently you have no shows that include ${args[0]} in their name. Use \`addShow\` command to add one.`;
-            
+            var noResultsMsg = `Currently you have no shows that include ${show} in their name. Use \`addShow\` command to add one.`;
+
+            runQuery(showDataSql, errorMsg, noResultsMsg, handleShowDataResult);
+        }
+
+		if(args.length > 0){
+            handleShow(args[0], message.author.username, message.author.discriminator);
             runQuery(showDataSql, errorMsg, noResultsMsg, handleShowDataResult);
 		} else {
 			message.channel.send('Please follw the `checkEpisodes` command with a name of the show you want check episodes for.');
