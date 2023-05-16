@@ -34,7 +34,7 @@ module.exports = {
 	            });
         	}
 		}
-		
+
 	    const getScript = (url) => {
             return new Promise((resolve, reject) => {
                 const http      = require('http'),
@@ -78,14 +78,14 @@ module.exports = {
         }
 
         const checkEpisodes = (msgHandle, genericUrl, name, include, pattern, number, savedEpisodes, previousLink) => { //TODO przerobiæ na promise'y
-        
+
             if(showAll && number > 1){
                 var finalLink = getFinalLink(previousLink, genericUrl, number);
                 var msgText = `**${number-1}**: <${finalLink}>`;
                 if(!unseen || !savedEpisodes.get(number-1).watched) {
                     handleAsync(message,msgText,savedEpisodes.get(number-1));
                 }
-            } 
+            }
 
             if(!showAll &&
             	savedEpisodes.get(number-1) &&
@@ -101,7 +101,7 @@ module.exports = {
                 checkEpisodes(msgHandle, genericUrl, name, include, pattern, number+1, savedEpisodes, savedEpisodes.get(number)['url']);
                 return;
             }
-            
+
             var episodeUrl = genericUrl.replace('<number>', number);
             getScript(episodeUrl).then(result => {
                 if(result.includes(include)){
@@ -198,7 +198,6 @@ module.exports = {
 
 		if(args.length > 0){
             handleShow(args[0], message.author.username, message.author.discriminator);
-            runQuery(showDataSql, errorMsg, noResultsMsg, handleShowDataResult);
 		} else {
 			message.channel.send('Please follw the `checkEpisodes` command with a name of the show you want check episodes for.');
 		}
