@@ -197,7 +197,11 @@ module.exports = {
         }
 
 		if(args.length > 0){
-            handleShow(args[0], message.author.username, message.author.discriminator);
+            let shows = args[0].split(',');
+            shows.forEach(show => {
+                handleShow(show, message.author.username, message.author.discriminator);
+                }
+            );
 		} else {
 			message.channel.send('Please follw the `checkEpisodes` command with a name of the show you want check episodes for.');
 		}
