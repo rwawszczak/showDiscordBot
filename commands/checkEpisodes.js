@@ -23,7 +23,7 @@ module.exports = {
 	                            	if(!episode.watched)
 	                                    msg.edit(text+' *<watched>*');
 	                                else
-	                                    msg.edit(text);
+	                                    msg.edit(text+' 🟢');
 	                    		} else {
 	                                msg.reply('There was an error while trying to edit episode.');
 	                    		}
