@@ -23,7 +23,7 @@ module.exports = {
 	                            	if(!episode.watched)
 	                                    msg.edit(text+' *<watched>*');
 	                                else
-	                                    msg.edit(text+' 🟢');
+	                                    msg.edit(text);
 	                    		} else {
 	                                msg.reply('There was an error while trying to edit episode.');
 	                    		}
@@ -93,7 +93,7 @@ module.exports = {
             	!savedEpisodes.get(number-1).watched &&
             	savedEpisodes.get(number-2).watched){
 	                var currentLink = getFinalLink(previousLink, genericUrl, number);
-	                var msgText = `First not watched **${name}** episode is episode number **${number-1}**:\n<${currentLink}>`;
+	                var msgText = `First not watched **${name}** episode is episode number **${number-1}**: 🟢\n<${currentLink}>`;
 	    			handleAsync(message,msgText,savedEpisodes.get(number-1));
     		}
 
