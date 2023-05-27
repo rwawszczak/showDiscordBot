@@ -10,7 +10,7 @@ module.exports = {
         const refresh = !!args[1] && args[1] === 'refresh';
 
         const handleAsync = async function(message, text, episode){
-        	var content = text + (episode.watched ? ' *<watched>*' : '') + (!episode.id ? ' **NEW!**' : '');
+        	var content = text + (episode.watched ? ' *<watched>*' : ' :green_circle:') + (!episode.id ? ' **NEW!** :blue_circle:' : '');
 			var msg = await message.channel.send(content);
 			if(episode.id){
 				msg.react('👁️');
@@ -93,7 +93,7 @@ module.exports = {
             	!savedEpisodes.get(number-1).watched &&
             	savedEpisodes.get(number-2).watched){
 	                var currentLink = getFinalLink(previousLink, genericUrl, number);
-	                var msgText = `First not watched **${name}** episode is episode number **${number-1}**: 🟢\n<${currentLink}>`;
+	                var msgText = `First not watched **${name}** episode is episode number **${number-1}**:\n<${currentLink}>`;
 	    			handleAsync(message,msgText,savedEpisodes.get(number-1));
     		}
 
