@@ -1,211 +1,168 @@
+const addEpisode = require('./addEpisode.js');
+const removeEpisode = require('./removeEpisode.js');
+const http = require('http');
+const https = require('https');
+
 module.exports = {
-	name: 'checkEpisodes',
-	short: 'ce',
-	description: 'Check last availiable episode of a show.',
-	execute(message, args, con){
-        const addEpisode = require('./addEpisode.js');
-        const removeEpisode = require('./removeEpisode.js');
-        const unseen = !!args[1] && args[1] === 'unseen';
-        const showAll = (!!args[1] && args[1] === 'all') || unseen;
-        const refresh = !!args[1] && args[1] === 'refresh';
+    name: 'checkEpisodes',
+    short: 'ce',
+    description: 'Check last available episode of a show.',
+    execute(message, args, con) {
+        // Helper function to handle reactions and update episode status
+        const handleReactions = async (message, content, episode) => {
+            try {
+                const msg = await message.channel.send(content);
+                if (episode.id) {
+                    await msg.react('👁️');
+                    const filter = (reaction, user) => user.id === message.author.id && reaction.emoji.name === '👁️';
+                    const collected = await msg.awaitReactions({ filter, max: 1, time: 60000 });
+                    if (collected.first().emoji.name === '👁️') {
+                        const watchedSql = `UPDATE episodes SET watched=${episode.watched ? 0 : 1} WHERE id=${episode.id}`;
+                        con.query(watchedSql, (err) => {
+                            if (err) {
+                                msg.reply('There was an error while trying to edit episode.');
+                            } else {
+                                msg.edit(content.replace(' *<watched>*', '').replace(':green_circle:', ' *<watched>*'));
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error handling reactions:', error);
+            }
+        };
 
-        const handleAsync = async function(message, text, episode){
-        	var content = text + (episode.watched ? ' *<watched>*' : ' :green_circle:') + (!episode.id ? ' **NEW!** :blue_circle:' : '');
-			var msg = await message.channel.send(content);
-			if(episode.id){
-				msg.react('👁️');
-				msg.awaitReactions((reaction, user) => user.id == message.author.id && reaction.emoji.name == '👁️',
-	                            { max: 1, time: 60000 }).then(collected => {
-	                    if (collected.first().emoji.name == '👁️') {
-	                    	var watchedSql = `UPDATE episodes SET watched='${episode.watched ? 0 : 1}' WHERE id='${episode.id}'`;
-	                    	con.query(watchedSql, function (err, result, fields) {
-	                    		if(!err){
-	                            	if(!episode.watched)
-	                                    msg.edit(text+' *<watched>*');
-	                                else
-	                                    msg.edit(text);
-	                    		} else {
-	                                msg.reply('There was an error while trying to edit episode.');
-	                    		}
-	                    	});
-	                    }
-	            }).catch(() => {
-	                    //TODO: remove added reactions
-	            });
-        	}
-		}
-
-	    const getScript = (url) => {
+        // Helper function to fetch content from a URL
+        const fetchUrlContent = (url) => {
             return new Promise((resolve, reject) => {
-                const http      = require('http'),
-                      https     = require('https');
-
-                if (!url.toString().startsWith("http")) {
-                    url = "http://"+url;
-                }
-
-                let client = http;
-
-                if (url.toString().indexOf("https") === 0) {
-                    client = https;
-                }
-
+                const client = url.startsWith('https') ? https : http;
                 client.get(url, (resp) => {
                     let data = '';
-
-                    // A chunk of data has been recieved.
-                    resp.on('data', (chunk) => {
-                        data += chunk;
-                    });
-
-                    // The whole response has been received. Print out the result.
-                    resp.on('end', () => {
-                        resolve(data);
-                    });
-
-                }).on("error", (err) => {
-                    reject(err);
-                });
+                    resp.on('data', (chunk) => { data += chunk; });
+                    resp.on('end', () => { resolve(data); });
+                }).on('error', (err) => { reject(err); });
             });
         };
 
+        // Helper function to get the final link for the episode
         const getFinalLink = (previousLink, genericUrl, number) => {
-        	var finalLink = !!previousLink ? previousLink : genericUrl.replace('<number>', number-1);
-        	if(!finalLink.startsWith('http') && !finalLink.startsWith('www')){
-        		finalLink = 'http://'+finalLink;
-        	}
-        	return finalLink;
-        }
+            let finalLink = previousLink || genericUrl.replace('<number>', number - 1);
+            if (!finalLink.startsWith('http')) finalLink = `http://${finalLink}`;
+            return finalLink;
+        };
 
-        const checkEpisodes = (msgHandle, genericUrl, name, include, pattern, number, savedEpisodes, previousLink) => { //TODO przerobiæ na promise'y
+        // Recursive function to check episodes
+        const checkEpisodes = async (msgHandle, genericUrl, name, include, pattern, number, savedEpisodes, previousLink) => {
+            const showAll = args.includes('all') || args.includes('unseen');
+            const unseen = args.includes('unseen');
+            const refresh = args.includes('refresh');
 
-            if(showAll && number > 1){
-                var finalLink = getFinalLink(previousLink, genericUrl, number);
-                var msgText = `**${number-1}**: <${finalLink}>`;
-                if(!unseen || !savedEpisodes.get(number-1).watched) {
-                    handleAsync(message,msgText,savedEpisodes.get(number-1));
+            if (showAll && number > 1) {
+                const finalLink = getFinalLink(previousLink, genericUrl, number);
+                const msgText = `**${number - 1}**: <${finalLink}>`;
+                if (!unseen || !savedEpisodes.get(number - 1).watched) {
+                    handleReactions(message, msgText, savedEpisodes.get(number - 1));
                 }
             }
 
-            if(!showAll &&
-            	savedEpisodes.get(number-1) &&
-            	savedEpisodes.get(number-2) &&
-            	!savedEpisodes.get(number-1).watched &&
-            	savedEpisodes.get(number-2).watched){
-	                var currentLink = getFinalLink(previousLink, genericUrl, number);
-	                var msgText = `First not watched **${name}** episode is episode number **${number-1}**:\n<${currentLink}>`;
-	    			handleAsync(message,msgText,savedEpisodes.get(number-1));
-    		}
+            if (!showAll && savedEpisodes.get(number - 1) && savedEpisodes.get(number - 2) && !savedEpisodes.get(number - 1).watched && savedEpisodes.get(number - 2).watched) {
+                const currentLink = getFinalLink(previousLink, genericUrl, number);
+                const msgText = `First not watched **${name}** episode is episode number **${number - 1}**:\n<${currentLink}>`;
+                handleReactions(message, msgText, savedEpisodes.get(number - 1));
+            }
 
-            if(!refresh && savedEpisodes.has(number)){
-                checkEpisodes(msgHandle, genericUrl, name, include, pattern, number+1, savedEpisodes, savedEpisodes.get(number)['url']);
+            if (!refresh && savedEpisodes.has(number)) {
+                checkEpisodes(msgHandle, genericUrl, name, include, pattern, number + 1, savedEpisodes, savedEpisodes.get(number).url);
                 return;
             }
 
-            var episodeUrl = genericUrl.replace('<number>', number);
-            getScript(episodeUrl).then(result => {
-                if(result.includes(include)){
-                    if(showAll){
-                        if(unseen){
-                            msgHandle.edit(`List of unseen **${name}** episodes:`);
-                        } else {
-                            msgHandle.edit(`List of availiable **${name}** episodes:`);
-                        }
-                    } else if(number % 10 === 0){
-                        msgHandle.edit(`Checked **${name}** episodes 1 to ${number}...`);
-                    }
-                    var patternLink = null;
-                    if(!pattern){
-                    } else {
-                        var matchResult = result.match(pattern);
-                        if(matchResult && matchResult.length > 1){
-                            patternLink = matchResult[1];
-                        }
-                    }
-                    var preparedUrl = !!patternLink ? patternLink : genericUrl.replace('<number>', number);
-                    var episodeArgs = [name, number, preparedUrl];
-                    if(refresh && savedEpisodes.has(number)){
-                    	removeEpisode.execute(message, episodeArgs, con, true);
-                    }
-                    addEpisode.execute(message, episodeArgs, con, true);
-                    savedEpisodes.set(number, {url: preparedUrl, watched: false});
+            const episodeUrl = genericUrl.replace('<number>', number);
+            try {
+                const result = await fetchUrlContent(episodeUrl);
+                if (result.includes(include)) {
+                    const msgText = showAll ? (unseen ? `List of unseen **${name}** episodes:` : `List of available **${name}** episodes:`) : `Checked **${name}** episodes 1 to ${number}...`;
+                    msgHandle.edit(msgText);
 
-                    checkEpisodes(msgHandle, genericUrl, name, include, pattern, number+1, savedEpisodes, patternLink);
+                    let patternLink = pattern ? (result.match(pattern) || [])[1] : null;
+                    const preparedUrl = patternLink || episodeUrl;
+                    if (refresh && savedEpisodes.has(number)) removeEpisode.execute(message, [name, number, preparedUrl], con, true);
+                    addEpisode.execute(message, [name, number, preparedUrl], con, true);
+
+                    savedEpisodes.set(number, { url: preparedUrl, watched: false });
+                    checkEpisodes(msgHandle, genericUrl, name, include, pattern, number + 1, savedEpisodes, patternLink);
                 } else {
-                    if(number > 1){
-                        if(!showAll){
-                			var finalLink = getFinalLink(previousLink, genericUrl, number);
+                    if (number > 1) {
+                        if (!showAll) {
+                            const finalLink = getFinalLink(previousLink, genericUrl, number);
                             msgHandle.delete();
-
-                            if(savedEpisodes.get(number-1).watched){
-	                            var msgText = `Last availiable **${name}** episode is episode number **${number-1}**:\n<${finalLink}>`;
-	                			handleAsync(message,msgText,savedEpisodes.get(number-1));
-                			}
+                            if (savedEpisodes.get(number - 1).watched) {
+                                const msgText = `Last available **${name}** episode is episode number **${number - 1}**:\n<${finalLink}>`;
+                                handleReactions(message, msgText, savedEpisodes.get(number - 1));
+                            }
                         } else {
                             message.channel.send("That's it :slight_smile:").then(() => {
-                            	msgHandle.edit(`List of available **${name}** episodes:`);
+                                msgHandle.edit(`List of available **${name}** episodes:`);
                             });
                         }
                     } else {
                         msgHandle.edit(`No **${name}** episodes available`);
                     }
                 }
-            });
-        }
+            } catch (error) {
+                console.error('Error fetching episode:', error);
+            }
+        };
 
+        // Helper function to run SQL queries
         const runQuery = (sql, errorMsg, noResultsMsg, handleResult) => {
-            con.query(sql, function (err, result) {
-			    if (err) {
-				    message.channel.send(errorMsg);
-				    throw err;
-			    }
-			    if(noResultsMsg && result.length === 0){
-				    message.channel.send(noResultsMsg);
-			    } else {
-                    handleResult(result);
-			    }
-		    });
-        }
-
-        const handleShowDataResult = (result) => {
-            var selectEpisodesSql = `SELECT * FROM episodes WHERE show_id=${result[0].id}`;
-            runQuery(selectEpisodesSql, 'error', false, (episodesResult) =>{
-                var savedEpisodes = new Map();
-                for(epiRes of episodesResult){
-                    savedEpisodes.set(epiRes['number'], {id: epiRes['id'], url: epiRes['url'], watched: epiRes['watched']} );
+            con.query(sql, (err, result) => {
+                if (err) {
+                    message.channel.send(errorMsg);
+                    throw err;
                 }
+                if (noResultsMsg && result.length === 0) {
+                    message.channel.send(noResultsMsg);
+                } else {
+                    handleResult(result);
+                }
+            });
+        };
 
-                var genericEpisodeUrl = result[0].episode_url;
-                var msg = message.channel.send(`Checking availability of **${result[0].show_name}** episodes...`);
-                msg.then(msgHandle => {
-                    if(!!result[0].episode_include){
+        // Function to handle show data result
+        const handleShowDataResult = (result) => {
+            const selectEpisodesSql = `SELECT * FROM episodes WHERE show_id=${result[0].id}`;
+            runQuery(selectEpisodesSql, 'Error fetching episodes.', false, (episodesResult) => {
+                const savedEpisodes = new Map();
+                episodesResult.forEach(epiRes => {
+                    savedEpisodes.set(epiRes.number, { id: epiRes.id, url: epiRes.url, watched: epiRes.watched });
+                });
+
+                const genericEpisodeUrl = result[0].episode_url;
+                message.channel.send(`Checking availability of **${result[0].show_name}** episodes...`).then(msgHandle => {
+                    if (result[0].episode_include) {
                         checkEpisodes(msgHandle, genericEpisodeUrl, result[0].show_name, result[0].episode_include, result[0].episode_pattern, 1, savedEpisodes);
-                    } else{
+                    } else {
                         msgHandle.edit(`First set text that must be included on the page of **${result[0].show_name}** episode with \`setEpisodeInclude\` command.`);
                     }
                 });
-
             });
-        }
+        };
 
+        // Function to handle show
         const handleShow = (show, username, discriminator) => {
-            var showDataSql = `SELECT show_name, episode_url, episode_include, episode_pattern, id FROM shows WHERE show_name LIKE '%${show}%' AND user='${username}#${discriminator}' AND (archived = 0 OR archived IS NULL)`;
-            var errorMsg = 'Something went wrong while trying fetch show data from the database.';
-            var noResultsMsg = `Currently you have no shows that include ${show} in their name. Use \`addShow\` command to add one.`;
+            const showDataSql = `SELECT show_name, episode_url, episode_include, episode_pattern, id FROM shows WHERE show_name LIKE '%${show}%' AND user='${username}#${discriminator}' AND (archived = 0 OR archived IS NULL)`;
+            const errorMsg = 'Something went wrong while trying to fetch show data from the database.';
+            const noResultsMsg = `Currently, you have no shows that include ${show} in their name. Use \`addShow\` command to add one.`;
 
             runQuery(showDataSql, errorMsg, noResultsMsg, handleShowDataResult);
+        };
+
+        // Main execution logic
+        if (args.length > 0) {
+            const shows = args[0].split(',');
+            shows.forEach(show => handleShow(show.trim(), message.author.username, message.author.discriminator));
+        } else {
+            message.channel.send('Please follow the `checkEpisodes` command with the name of the show you want to check episodes for.');
         }
-
-		if(args.length > 0){
-            let shows = args[0].split(',');
-            shows.forEach(show => {
-                handleShow(show, message.author.username, message.author.discriminator);
-                }
-            );
-		} else {
-			message.channel.send('Please follw the `checkEpisodes` command with a name of the show you want check episodes for.');
-		}
-
-
-	}
-}
+    }
+};

@@ -67,7 +67,7 @@ client.on('message', message => {
 		lastCommand = () => commandDefinition.execute(message, parseArgs(args), con);
 		lastCommand();
 	}	
-	if(command === 'replay'){
+	if(command === 'replay' || command === 're'){
 		if(!!lastCommand){
 			lastCommand();
 		} else {
